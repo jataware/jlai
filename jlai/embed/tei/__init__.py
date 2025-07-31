@@ -15,26 +15,23 @@ from rich import print as rprint
 from .common import app
 from .remote import TextEmbeddingsInference
 
+def _get_chunks(x, bs):
+    return [x[i:i+bs] for i in range(0, len(x), bs)]
+
 def embed_dataset(input_strs, batch_size=512):
-    mask = np.array([len(s) > 0 for s in input_strs])
-    
-    input_str_chunks = [
-        input_strs[i:i+batch_size] for i in range(0, len(input_strs), batch_size)
-    ]
-    
     model = TextEmbeddingsInference()
     
+    mask        = np.array([len(s) > 0 for s in input_strs])
+    _input_strs = [x for i, x in enumerate(input_strs) if mask[i]]
+    
     embeddings = []
-    for (chunk_embs, success) in model.embed.map(input_str_chunks, order_outputs=True):
-        if isinstance(chunk_embs, Exception):
-            # [BKJ] i haven't actually hit an error yet, AFAICT
-            print('!' * 100)
-            print(f"Exception: {chunk_embs}")
-            print('!' * 100)
-            continue
-
+    for (chunk_embs, success) in model.embed.map(
+        _get_chunks(_input_strs, batch_size),
+        order_outputs=True
+    ):
         embeddings.append(chunk_embs)
 
+    # fix bad embeddings
     _out      = np.vstack(embeddings)
     out       = np.zeros((mask.shape[0], _out.shape[1]), dtype=np.float32)
     out[mask] = _out
