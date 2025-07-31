@@ -2,7 +2,11 @@
     jlai.embed.tei
     
     LOCAL ENTRYPOINT
+    
+    [TODO] - empty strings - causes an error
+    [TODO] - long strings?  what happens?
 """
+
 import json
 from time import time
 import numpy as np
@@ -12,6 +16,8 @@ from .common import app
 from .remote import TextEmbeddingsInference
 
 def embed_dataset(input_strs, batch_size=512):
+    mask = np.array([len(s) > 0 for s in input_strs])
+    
     input_str_chunks = [
         input_strs[i:i+batch_size] for i in range(0, len(input_strs), batch_size)
     ]
@@ -19,17 +25,20 @@ def embed_dataset(input_strs, batch_size=512):
     model = TextEmbeddingsInference()
     
     embeddings = []
-    for resp in model.embed.map(input_str_chunks, order_outputs=True):
-        if isinstance(resp, Exception):
+    for (chunk_embs, success) in model.embed.map(input_str_chunks, order_outputs=True):
+        if isinstance(chunk_embs, Exception):
             # [BKJ] i haven't actually hit an error yet, AFAICT
             print('!' * 100)
-            print(f"Exception: {resp}")
+            print(f"Exception: {chunk_embs}")
             print('!' * 100)
             continue
 
-        embeddings.append(resp)
+        embeddings.append(chunk_embs)
 
-    return np.row_stack(embeddings)
+    _out      = np.vstack(embeddings)
+    out       = np.zeros((mask.shape[0], _out.shape[1]), dtype=np.float32)
+    out[mask] = _out
+    return out
 
 
 def __get_test_data(n_replicates: int = 10):
@@ -53,7 +62,7 @@ def main(inpath: str = None, outpath: str = None, test: bool = False):
         input_strs = __get_test_data()
     else:
         assert (inpath is not None) and (outpath is not None)
-        input_strs = [json.loads(line)['text'] for line in open(inpath)]
+        input_strs = [json.loads(line)['text'].strip() for line in open(inpath)]
     
     t       = time()
     results = embed_dataset(input_strs=input_strs)

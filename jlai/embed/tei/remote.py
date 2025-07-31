@@ -94,4 +94,7 @@ class TextEmbeddingsInference:
         ]
 
         out = await asyncio.gather(*coros)
-        return np.row_stack(out, dtype=np.float32)
+        try:
+            return np.vstack(out, dtype=np.float32), True
+        except:
+            return out, False
