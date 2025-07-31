@@ -1,0 +1,13 @@
+[workspace]
+authors = ["bkj <bkj.322@gmail.com>"]
+channels = ["conda-forge"]
+name = "modal-toy"
+platforms = ["osx-arm64"]
+version = "0.1.0"
+
+[tasks]
+
+[dependencies]
+python = "3.12.*"
+pip = ">=25.2,<26"
+numpy = ">=2.3.2,<3"
