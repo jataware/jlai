@@ -21,6 +21,7 @@ def _get_chunks(x, bs):
     return [x[i:i+bs] for i in range(0, len(x), bs)]
 
 def embed_dataset(input_strs, batch_size=512, mode='deploy'):
+    assert mode in ['run', 'deploy']
     if mode == 'run':
         model = TextEmbeddingsInference()
     elif mode == 'deploy':
