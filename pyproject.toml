@@ -20,6 +20,7 @@ jlai = { path = ".", editable = true }
 
 [tool.pixi.dependencies]
 python = "3.13.*"
+fire = ">=0.7.0,<0.8"
 
 [tool.hatch.build.targets.wheel]
 packages = ["jlai"]

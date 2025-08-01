@@ -61,6 +61,8 @@ def _start_hf_tei_server(batch_size: int, model_id: str) -> subprocess.Popen:
     volumes          = {
         MODEL_CACHE_DIR: MODEL_CACHE_VOLUME,
     },
+    enable_memory_snapshot=True,
+    experimental_options={"enable_gpu_snapshot": True}
 )
 @modal.concurrent(max_inputs=10)
 class TextEmbeddingsInference:
