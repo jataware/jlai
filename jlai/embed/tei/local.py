@@ -33,10 +33,14 @@ def embed_dataset(input_strs, batch_size=512, model_id='Qwen/Qwen3-Embedding-0.6
     _input_strs = [x for i, x in enumerate(input_strs) if mask[i]]
     
     embeddings = []
+    chunks     = _get_chunks(_input_strs, batch_size)
     for (chunk_embs, success) in model.embed.map(
-        _get_chunks(_input_strs, batch_size),
+        chunks,
         order_outputs=True
     ):
+        if mode == 'deploy':
+            rprint(f'[yellow]embed_dataset: {len(embeddings) / len(chunks):.2f}[/yellow]', end='\r')
+        
         embeddings.append(chunk_embs)
 
     # fix bad embeddings
