@@ -262,10 +262,10 @@ packages:
 - pypi: ./
   name: jlai
   version: 0.1.0
-  sha256: 7fce4251508a1d3c2a599591000462a09e799cd1011ba4e0577eb27fb2605de3
+  sha256: 085dd427726a566c1fea4eb9f1d1b2fe193fc2a7caf2cbc8a34c5dd358f0ff94
   requires_dist:
   - modal>=1.1.0,<2
-  - numpy>=2.3,<3
+  - numpy>=1.26,<3
   requires_python: '>=3.11'
   editable: true
 - conda: https://conda.anaconda.org/conda-forge/osx-arm64/libexpat-2.7.1-hec049ff_0.conda
