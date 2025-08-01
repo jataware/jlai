@@ -20,12 +20,14 @@ from .remote import TextEmbeddingsInference
 def _get_chunks(x, bs):
     return [x[i:i+bs] for i in range(0, len(x), bs)]
 
-def embed_dataset(input_strs, batch_size=512, mode='deploy'):
+def embed_dataset(input_strs, batch_size=512, model_id='Qwen/Qwen3-Embedding-0.6B',mode='deploy'):
     assert mode in ['run', 'deploy']
     if mode == 'run':
-        model = TextEmbeddingsInference()
+        _model_cls = TextEmbeddingsInference
     elif mode == 'deploy':
-        model = modal.Cls.from_name(app.name, 'TextEmbeddingsInference')()
+        _model_cls = modal.Cls.from_name(app.name, 'TextEmbeddingsInference')
+    
+    model = _model_cls(model_id=model_id)
     
     mask        = np.array([len(s) > 0 for s in input_strs])
     _input_strs = [x for i, x in enumerate(input_strs) if mask[i]]
