@@ -9,13 +9,16 @@ import modal
 
 from .common import app
 
+# --
+# Define image
+
 MODEL_CACHE_VOLUME = modal.Volume.from_name("embedding-model-cache", create_if_missing=True)
 MODEL_CACHE_DIR    = "/model"
 
 gpu_type       = os.getenv("JLAI_GPU_TYPE", "A10G")
 max_containers = int(os.getenv("JLAI_MAX_CONTAINERS", "1"))
 
-tei_image = (
+_image = (
     modal.Image.from_registry(
         "ghcr.io/huggingface/text-embeddings-inference:86-1.7",
         add_python="3.12",
@@ -24,13 +27,15 @@ tei_image = (
     .pip_install("httpx", "numpy")
 )
 
-with tei_image.imports():
+with _image.imports():
     import os
     import socket
     import numpy as np
     from time import sleep
     from httpx import AsyncClient
     
+# --
+# Run
 
 def _start_hf_tei_server(batch_size: int, model_id: str) -> subprocess.Popen:
     process = subprocess.Popen(["text-embeddings-router"] + [
@@ -53,7 +58,7 @@ def _start_hf_tei_server(batch_size: int, model_id: str) -> subprocess.Popen:
                 raise RuntimeError(f"launcher exited unexpectedly with code {retcode}")
 
 @app.cls(
-    image            = tei_image,
+    image            = _image,
     gpu              = gpu_type,
     max_containers   = max_containers,
     retries          = 3,
