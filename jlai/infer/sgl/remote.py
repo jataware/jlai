@@ -1,8 +1,11 @@
+#!/usr/bin/env python3
+"""
+    jlai.infer.sgl.remote
+"""
+
 import os
-import time
 from pathlib import Path
 from typing import Optional
-from uuid import uuid4
 
 import modal
 from .common import app
