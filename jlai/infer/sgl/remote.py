@@ -50,11 +50,12 @@ with _image.imports():
     image            = _image,
     gpu              = gpu_type,
     max_containers   = max_containers,
+    scaledown_window = 5 * 60,
     retries          = 3,
     secrets          = [modal.Secret.from_name("huggingface-secret")],
     volumes          = VOLUMES,
 )
-@modal.concurrent(max_inputs=10)
+@modal.concurrent(max_inputs=32)
 class SGLInference:
     model_str   : str = modal.parameter(default="qwen/qwen2.5-0.5b-instruct")
 
@@ -68,18 +69,11 @@ class SGLInference:
         print(f"Server started on http://localhost:{self.port}")
 
     @modal.method()
-    async def completion(self, messages: list[dict], completion_kwargs: Optional[dict] = None):
-        completion_kwargs = completion_kwargs or {}
-        
-        return (
-            openai.Client(base_url=f"http://127.0.0.1:{self.port}/v1", api_key="None")
-            .chat
-            .completions
-            .create(
-                model       = self.model_str,
-                messages    = messages,
-                **completion_kwargs,
-            )
+    async def completion(self, body: dict):
+        client = openai.AsyncOpenAI(base_url=f"http://127.0.0.1:{self.port}/v1", api_key="None")
+        return await client.chat.completions.create(
+            model = self.model_str,
+            **body,
         )
 
     @modal.exit()

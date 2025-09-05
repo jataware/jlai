@@ -4,57 +4,27 @@
 """
 
 import modal
+
 from .common import app
+from .remote import SGLInference
 
-def run_inference(model_str, msgs, **kwargs):
-    if isinstance(msgs[0], dict):
-        msgs = [msgs]
+def run_inference(model_str, bodies, mode='deploy', **kwargs):
+    assert mode in ['run', 'deploy']
+    if mode == 'run':
+        _model_cls = SGLInference
+    elif mode == 'deploy':
+        _model_cls = modal.Cls.from_name(app.name, 'SGLInference')
     
-    _model_cls = modal.Cls.from_name(app.name, 'SGLInference')
-    model      = _model_cls(model_str=model_str)
-
-    return model.completion.starmap([[msg, kwargs] for msg in msgs])
-
-if __name__ == "__main__":
-    msgs = [
-        [
-            {
-                "role": "system",
-                "content": "You are a helpful assistant."
-            },
-            {
-                "role": "user",
-                "content": "What is the capital of France?"
-            }
-        ],
-        [
-            {
-                "role": "system",
-                "content": "You are a helpful assistant."
-            },
-            {
-                "role": "user",
-                "content": "What is the capital of Uruguay?"
-            }
-        ]
-    ]
+    if isinstance(bodies, dict):
+        bodies = [bodies]
     
-    output_gen = run_inference(
-        model_str    = "qwen/qwen2.5-0.5b-instruct",
-        msgs         = msgs,
-        temperature  = 1.0,
-        max_tokens   = 64,
-        logprobs     = True,
-        top_logprobs = 512,
-    )
+    model = _model_cls(model_str=model_str)
     
     outputs = []
-    for output in output_gen:
-        print(output.choices[0].message.content)
-        print(len(output.choices[0].logprobs.content[0].top_logprobs))
-        print('-' * 100)
+    for output in model.completion.map(
+        bodies,
+        order_outputs=True
+    ):
         outputs.append(output)
-
-    breakpoint()
-
-    outputs[0]
+    
+    return outputs
