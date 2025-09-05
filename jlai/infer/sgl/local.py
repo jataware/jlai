@@ -22,7 +22,7 @@ class SGLClient:
         return self.model.completion.remote(body=body)
 
     async def acompletion(self, body):
-        return self.model.completion.remote.aio(body=body)
+        return await self.model.completion.remote.aio(body=body)
     
     def batch_completion(self, bodies):
         for output in self.model.completion.map(bodies, order_outputs=True):
