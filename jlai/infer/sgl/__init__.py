@@ -1,5 +1,5 @@
 from .common import app
-from .local import run_inference
+from .local import SGLClient
 
 @app.local_entrypoint()
 def main():
@@ -36,10 +36,10 @@ def main():
         } for messages in all_messages
     ]
     
-    outputs = run_inference(
+    client = SGLClient(
         model_str    = "qwen/qwen2.5-0.5b-instruct",
-        bodies       = bodies,
-        mode         = "run",
+        devel        = True
     )
 
-    print(outputs)
+    for output in client.batch_completion(bodies):
+        print(output)
