@@ -63,7 +63,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/munkres-1.1.4-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/ncurses-6.5-h5e97a16_3.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/numpy-2.3.2-py313h674b998_2.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/openai-1.101.0-pyhd8ed1ab_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/openai-1.106.1-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/openjpeg-2.5.3-h889cd5d_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/openssl-3.5.1-h81ee809_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/packaging-25.0-pyh29332c3_1.conda
@@ -524,7 +524,7 @@ packages:
 - pypi: ./
   name: jlai
   version: 0.1.0
-  sha256: 01b7ef183175a48891a68229381562bb8a97d7b062eb11f38ae4662cf452a818
+  sha256: c95fa8b0756f936d42cbbe57ef83bd6d1e5e917b6236bd978de06ee16c47ae76
   requires_dist:
   - modal>=1.1.0,<2
   - numpy>=1.26,<3
@@ -998,9 +998,9 @@ packages:
   - pkg:pypi/numpy?source=compressed-mapping
   size: 6748521
   timestamp: 1756343067600
-- conda: https://conda.anaconda.org/conda-forge/noarch/openai-1.101.0-pyhd8ed1ab_0.conda
-  sha256: 5b5c29a24c01fded77450111056e792f73c2a4ef243a77216bbb5d6f21eb04e8
-  md5: 6cf34f59ba7fac5be2aad5232af3ba97
+- conda: https://conda.anaconda.org/conda-forge/noarch/openai-1.106.1-pyhd8ed1ab_0.conda
+  sha256: 45e120f75b15108a15f0bb27ec994133d0dcb7dc81108bd33a4856ee664be3a6
+  md5: 4c775f2829e3e5c03d6392198596dc8a
   depends:
   - anyio >=3.5.0,<5
   - distro >=1.7.0,<2
@@ -1016,8 +1016,8 @@ packages:
   license_family: MIT
   purls:
   - pkg:pypi/openai?source=hash-mapping
-  size: 317409
-  timestamp: 1755850014308
+  size: 342293
+  timestamp: 1757033567661
 - conda: https://conda.anaconda.org/conda-forge/osx-arm64/openjpeg-2.5.3-h889cd5d_1.conda
   sha256: 6013916893fcd9bc97c479279cfe4616de7735ec566bad0ee41bc729e14d31b2
   md5: ab581998c77c512d455a13befcddaac3
