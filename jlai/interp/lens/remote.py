@@ -32,17 +32,19 @@ _image = (
         "torch",
         "transformers",
         "huggingface_hub",
+        "hf-transfer",
         "hf-xet",
     )
     .env(
         {
-            "HF_HOME"                   : str(MODEL_CACHE_PATH),
+            "HF_HOME"                   : str(MODEL_CACHE_PATH), # [TODO] does this work with transformer-lens?
             "HF_HUB_ENABLE_HF_TRANSFER" : "1",
         }
     )
 )
 
 with _image.imports():
+    import torch
     import numpy as np
     import transformer_lens
 
@@ -68,7 +70,7 @@ class LensInference:
     @modal.enter()
     def _on_enter(self):
         self.model = transformer_lens.HookedTransformer.from_pretrained(self.model_str)
-        self.model.tokenizer.pad_token = self.model.tokenizer.eos_token
+        self.model.tokenizer.pad_token    = self.model.tokenizer.eos_token
         self.model.tokenizer.padding_side = self.padding_side
         print(f"Model {self.model_str} loaded successfully")
         
@@ -94,13 +96,14 @@ class LensInference:
             inputs_str = self._prep(messages)
             n_tokens   = self._n_tokens(inputs_str)
             
-            self.model.reset_hooks()
-            logits, activations = self.model.run_with_cache(
-                inputs_str, 
-                padding_side        = self.model.tokenizer.padding_side, 
-                return_cache_object = False,
-                **kwargs
-            )
+            with torch.no_grad():
+                self.model.reset_hooks()
+                logits, activations = self.model.run_with_cache(
+                    inputs_str, 
+                    padding_side        = self.model.tokenizer.padding_side, 
+                    return_cache_object = False,
+                    **kwargs
+                )
             
             _cache = {
                 **{k:v.to('cpu') for k, v in activations.items()},
@@ -113,6 +116,11 @@ class LensInference:
                     tmp = {k: _cache[k][i,:n_tokens[i]] for k in _cache.keys()}
                 elif self.model.tokenizer.padding_side == 'left':
                     tmp = {k: _cache[k][i,-n_tokens[i]:] for k in _cache.keys()}
+                
+                # <<
+                # convert to numpy
+                tmp = {k: v.numpy() for k, v in tmp.items()}
+                # >>
                 
                 out.append(tmp)
             

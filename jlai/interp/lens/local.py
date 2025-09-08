@@ -4,7 +4,6 @@
 """
 
 import modal
-import asyncio
 import numpy as np
 
 from .common import app
@@ -21,14 +20,14 @@ class LensClient:
         self.padding_side = padding_side
         self.model        = _model_cls(model_str=self.model_str, padding_side=self.padding_side)
 
-    def forward(self, messages):
-        return self.model.forward.remote(messages=messages)
+    def forward(self, messages : list):
+        return self.model.forward.remote.aio(messages=messages)
 
     async def aforward(self, messages):
         return await self.model.forward.remote.aio(messages=messages)
 
     async def abatched_forward(self, messages, tokens_per_batch=1024, **kwargs):
-        n_tokens = self.model.remote.messages2tokens(messages)
+        n_tokens = self.model.messages2tokens.remote(messages)
         assert max(n_tokens) <= tokens_per_batch, "Max token count per batch is less than the max token count per message"
         
         # Sort by token count for efficient batching
@@ -62,10 +61,7 @@ class LensClient:
         # Process all batches in parallel across different machines
         # [TODO] control the number of machines?  With a semaphore here maybe?
         
-        all_results = [None] * len(messages)
         for batch_idxs in batches:
             batch_results = await self.aforward([sorted_messages[i] for i in batch_idxs], **kwargs)
             for batch_idx, result in zip(batch_idxs, batch_results):
-                all_results[asort[batch_idx]] = result
-        
-        return all_results
+                yield asort[batch_idx], result

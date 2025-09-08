@@ -2,7 +2,7 @@ from .common import app
 from .local import LensClient
 
 @app.local_entrypoint()
-def main():
+async def main():
     messages = [
         [
             {'role': 'user', 'content': 'What is the capital of France?'}
@@ -30,5 +30,5 @@ def main():
         devel        = True
     )
 
-    cache = client.batched_forward(messages, tokens_per_batch=51)
-    print(f"Retrieved cache with {len(cache)} entries")
+    async for result in client.abatched_forward(messages, tokens_per_batch=51):
+        print(result)
