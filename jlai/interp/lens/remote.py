@@ -5,6 +5,7 @@
 
 import os
 import asyncio
+from time import time
 from pathlib import Path
 from typing import Optional
 
@@ -90,8 +91,12 @@ class LensInference:
         return self.model.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
 
     @modal.method()
-    async def forward(self, messages: list, **kwargs):
+    async def forward(self, messages: list[list[dict]], return_logits: bool = True, **kwargs) -> list[dict]:
+        t0 = time()
         async with self.semaphore: # force max 1 concurrent forward call, even if more are queued
+            t1 = time()
+            print(f"LensInference.forward: start (waited {t1 - t0}s)")
+            
             n_messages = len(messages)
             inputs_str = self._prep(messages)
             n_tokens   = self._n_tokens(inputs_str)
@@ -107,8 +112,9 @@ class LensInference:
             
             _cache = {
                 **{k:v.to('cpu') for k, v in activations.items()},
-                "logits": logits.to('cpu'),
             }
+            if return_logits:
+                _cache["logits"] = logits.to('cpu')
             
             out = []
             for i in range(n_messages):
@@ -124,4 +130,5 @@ class LensInference:
                 
                 out.append(tmp)
             
+            print(f"LensInference.forward: done (ran for {time() - t1}s)")
             return out

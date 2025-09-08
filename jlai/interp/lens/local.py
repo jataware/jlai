@@ -23,8 +23,8 @@ class LensClient:
     def forward(self, messages : list):
         return self.model.forward.remote.aio(messages=messages)
 
-    async def aforward(self, messages):
-        return await self.model.forward.remote.aio(messages=messages)
+    async def aforward(self, messages, **kwargs):
+        return await self.model.forward.remote.aio(messages=messages, **kwargs)
 
     async def abatched_forward(self, messages, tokens_per_batch=1024, **kwargs):
         n_tokens = self.model.messages2tokens.remote(messages)
