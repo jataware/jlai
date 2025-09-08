@@ -45,6 +45,7 @@ _image = (
 )
 
 with _image.imports():
+    import re
     import torch
     import numpy as np
     import transformer_lens
