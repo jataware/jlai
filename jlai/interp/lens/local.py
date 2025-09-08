@@ -3,6 +3,7 @@
     jlai.interp.lens.modal.local
 """
 
+import asyncio
 import modal
 import numpy as np
 
@@ -40,12 +41,12 @@ class LensClient:
         
         print('batched_forward: creating batches')
         
-        batches     = []
+        all_bidxs   = []
         curr_batch  = []
         curr_n_toks = 0
         for i, tokens in enumerate(sorted_n_tokens):
             if curr_n_toks + tokens > tokens_per_batch and curr_batch:
-                batches.append(curr_batch)
+                all_bidxs.append(curr_batch)
                 print(f'\tbatch={curr_batch} | n_tokens={curr_n_toks}')
                 curr_batch  = []
                 curr_n_toks = 0
@@ -54,16 +55,18 @@ class LensClient:
             curr_n_toks += tokens
         
         if curr_batch:
-            batches.append(curr_batch)
+            all_bidxs.append(curr_batch)
             print(f'\tbatch={curr_batch} | n_tokens={curr_n_toks}')
         
         # --
-        # Process all batches in parallel across different machines
+        # Process all all_bidxs in parallel across different machines
         # [TODO] control the number of machines?  With a semaphore here maybe?
         
-        for batch_idxs in batches:
-            print('LensClient.abatched_forward: afoward - submit')
-            batch_results = await self.aforward([sorted_messages[i] for i in batch_idxs], **kwargs)
-            print('LensClient.abatched_forward: afoward - done')
-            for batch_idx, result in zip(batch_idxs, batch_results):
-                yield asort[batch_idx], result
+        async def _process_batch(bidxs):
+            batch_res = await self.aforward([sorted_messages[i] for i in bidxs], **kwargs)
+            return [(asort[idx], res) for idx, res in zip(bidxs, batch_res)]
+
+        tasks = [_process_batch(bidxs) for bidxs in all_bidxs]
+        for task in asyncio.as_completed(tasks):
+            for gidx, res in (await task):
+                yield gidx, res
