@@ -1,5 +1,5 @@
 import asyncio
-from .local import LensClient
+from jlai.interp.lens import LensClient
 
 async def main():
     messages = [
