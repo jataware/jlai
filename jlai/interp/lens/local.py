@@ -62,6 +62,8 @@ class LensClient:
         # [TODO] control the number of machines?  With a semaphore here maybe?
         
         for batch_idxs in batches:
+            print('LensClient.abatched_forward: afoward - submit')
             batch_results = await self.aforward([sorted_messages[i] for i in batch_idxs], **kwargs)
+            print('LensClient.abatched_forward: afoward - done')
             for batch_idx, result in zip(batch_idxs, batch_results):
                 yield asort[batch_idx], result
