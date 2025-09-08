@@ -47,13 +47,15 @@ with _image.imports():
 # Run
 
 @app.cls(
-    image            = _image,
-    gpu              = gpu_type,
-    max_containers   = max_containers,
-    scaledown_window = 5 * 60,
-    retries          = 3,
-    secrets          = [modal.Secret.from_name("huggingface-secret")],
-    volumes          = VOLUMES,
+    image                  = _image,
+    gpu                    = gpu_type,
+    max_containers         = max_containers,
+    scaledown_window       = 2 * 60,
+    retries                = 3,
+    secrets                = [modal.Secret.from_name("huggingface-secret")],
+    volumes                = VOLUMES,
+    # enable_memory_snapshot = True,
+    # experimental_options   = {"enable_gpu_snapshot": True}
 )
 @modal.concurrent(max_inputs=32)
 class SGLInference:
@@ -71,10 +73,7 @@ class SGLInference:
     @modal.method()
     async def completion(self, body: dict):
         client = openai.AsyncOpenAI(base_url=f"http://127.0.0.1:{self.port}/v1", api_key="None")
-        return await client.chat.completions.create(
-            model = self.model_str,
-            **body,
-        )
+        return await client.chat.completions.create(model=self.model_str, **body)
 
     @modal.exit()
     def _on_exit(self):
