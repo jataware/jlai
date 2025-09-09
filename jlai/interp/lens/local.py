@@ -23,6 +23,9 @@ class LensClient:
         self.padding_side = padding_side
         self.model        = _model_cls(model_str=self.model_str, padding_side=self.padding_side)
 
+    def n_tokens(self, messages):
+        return self.model.messages2tokens.remote(messages)
+    
     def hook_names(self):
         return self.model.hook_names.remote()
 
