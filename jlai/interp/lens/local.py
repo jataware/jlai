@@ -6,6 +6,7 @@
 import asyncio
 import numpy as np
 from tqdm import tqdm
+import binpacking
 
 import modal
 
@@ -35,49 +36,37 @@ class LensClient:
     async def aforward(self, messages, **kwargs):
         return await self.model.forward.remote.aio(messages=messages, **kwargs)
 
-    def _compute_batches(self, sorted_n_tokens, tokens_per_batch):
-        print('batched_forward: creating batches')
+    def _compute_batches(self, n_tokens, tokens_per_batch, verbose=True):
+        bins = binpacking.to_constant_volume(
+            dict(zip(range(len(n_tokens)), n_tokens)),
+            tokens_per_batch
+        )
+        bins = [list(b.keys()) for b in bins]
         
-        all_bidxs   = []
-        curr_batch  = []
-        curr_n_toks = 0
-        for i, tokens in enumerate(sorted_n_tokens):
-            if curr_n_toks + tokens > tokens_per_batch and curr_batch:
-                all_bidxs.append(curr_batch)
-                print(f' n_tokens={curr_n_toks} | batch={curr_batch}')
-                curr_batch  = []
-                curr_n_toks = 0
-            
-            curr_batch.append(i)
-            curr_n_toks += tokens
+        if verbose:
+            for idx, members in enumerate(bins):
+                print(f'batch={idx} | n_tokens={sum(n_tokens[m] for m in members)} | members={members}')
         
-        if curr_batch:
-            all_bidxs.append(curr_batch)
-            print(f' n_tokens={curr_n_toks} | batch={curr_batch}')
-        
-        return all_bidxs
+        return bins
     
     async def abatched_forward(self, messages, tokens_per_batch=1024, **kwargs):
         n_tokens = self.model.messages2tokens.remote(messages)
         assert max(n_tokens) <= tokens_per_batch, "Max token count per batch is less than the max token count per message"
         
-        # Sort by token count for efficient batching
-        asort           = np.argsort(n_tokens)
-        sorted_messages = [messages[i] for i in asort]
-        sorted_n_tokens = [n_tokens[i] for i in asort]
-        all_bidxs       = self._compute_batches(sorted_n_tokens, tokens_per_batch)
-
+        batch_idxs = self._compute_batches(n_tokens, tokens_per_batch)
+        raise Exception('stop')
+        
         # --
-        # Process all all_bidxs in parallel across different machines
+        # Process all batch_idxs in parallel across different machines
         # [TODO] control the number of machines?  With a semaphore here maybe?
         
-        async def _process_batch(bidxs):
-            batch_res = await self.aforward([sorted_messages[i] for i in bidxs], **kwargs)
-            return [(asort[idx], res) for idx, res in zip(bidxs, batch_res)]
+        async def _process_batch(idxs):
+            batch_res = await self.aforward([messages[i] for i in idxs], **kwargs)
+            return [(idx, res) for idx, res in zip(idxs, batch_res)]
 
-        tasks = [_process_batch(bidxs) for bidxs in all_bidxs]
+        tasks = [_process_batch(idxs) for idxs in batch_idxs]
         pbar  = tqdm(total=len(messages))
         for task in asyncio.as_completed(tasks):
-            for gidx, res in (await task):
-                yield gidx, res
+            for idx, res in (await task):
+                yield idx, res
                 pbar.update(1)
