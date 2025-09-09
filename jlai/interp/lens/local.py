@@ -68,6 +68,7 @@ class LensClient:
         # [TODO] control the number of machines?  With a semaphore here maybe?
         
         async def _process_batch(bidxs):
+            print('_process_batch: submit')
             batch_res = await self.aforward([sorted_messages[i] for i in bidxs], **kwargs)
             return [(asort[idx], res) for idx, res in zip(bidxs, batch_res)]
 
