@@ -51,10 +51,10 @@ class LensClient:
     
     async def abatched_forward(self, messages, tokens_per_batch=1024, **kwargs):
         n_tokens = self.model.messages2tokens.remote(messages)
-        assert max(n_tokens) <= tokens_per_batch, f"Max token count per batch is less than the max token count per message (tokens_per_batch={tokens_per_batch}, max(n_tokens)={max(n_tokens)})"
+        if max(n_tokens) > tokens_per_batch:
+            print(f"WARNING: tokens_per_batch={tokens_per_batch} | max(n_tokens)={max(n_tokens)}")
         
         batch_idxs = self._compute_batches(n_tokens, tokens_per_batch)
-        raise Exception('stop')
         
         # --
         # Process all batch_idxs in parallel across different machines
