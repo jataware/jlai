@@ -49,7 +49,7 @@ class LensClient:
         
         return bins
     
-    async def abatched_forward(self, messages, tokens_per_batch=1024, **kwargs):
+    async def abatched_forward(self, messages, tokens_per_batch=1024, max_concurrent=1500, **kwargs):
         n_tokens = self.model.messages2tokens.remote(messages)
         if max(n_tokens) > tokens_per_batch:
             print(f"WARNING: tokens_per_batch={tokens_per_batch} | max(n_tokens)={max(n_tokens)}")
@@ -60,9 +60,11 @@ class LensClient:
         # Process all batch_idxs in parallel across different machines
         # [TODO] control the number of machines?  With a semaphore here maybe?
         
+        sem = asyncio.Semaphore(max_concurrent)
         async def _process_batch(idxs):
-            batch_res = await self.aforward([messages[i] for i in idxs], **kwargs)
-            return [(idx, res) for idx, res in zip(idxs, batch_res)]
+            async with sem:
+                batch_res = await self.aforward([messages[i] for i in idxs], **kwargs)
+                return [(idx, res) for idx, res in zip(idxs, batch_res)]
 
         tasks = [_process_batch(idxs) for idxs in batch_idxs]
         pbar  = tqdm(total=len(messages))
