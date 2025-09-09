@@ -125,11 +125,11 @@ class LensInference:
                 _cache["logits"] = logits.to('cpu')
             
             out = []
-            for i in range(n_messages):
+            for msg_idx in range(n_messages):
                 if self.model.tokenizer.padding_side == 'right':
-                    tmp = {k: _cache[k][i,:n_tokens[i]] for k in _cache.keys()}
+                    tmp = {k: _cache[k][msg_idx,:n_tokens[msg_idx]] for k in _cache.keys()}
                 elif self.model.tokenizer.padding_side == 'left':
-                    tmp = {k: _cache[k][i,-n_tokens[i]:] for k in _cache.keys()}
+                    tmp = {k: _cache[k][msg_idx,-n_tokens[msg_idx]:] for k in _cache.keys()}
                 
                 # <<
                 # convert to numpy
@@ -137,7 +137,7 @@ class LensInference:
                 # >>
                 
                 if aggregate:
-                    agg_idxs = list(range(aggregate, n_tokens[i] + aggregate, aggregate))
+                    agg_idxs = list(range(aggregate, n_tokens[msg_idx] + aggregate, aggregate))
                     tmp      = {k: np.vstack([v[:idx].mean(axis=0).astype(np.float32) for idx in agg_idxs]) for k, v in tmp.items()}
                 
                 out.append(tmp)
