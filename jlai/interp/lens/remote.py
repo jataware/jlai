@@ -3,6 +3,7 @@
     jlai.interp.lens.modal.remote
 """
 
+import re
 import os
 import asyncio
 from time import time

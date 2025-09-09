@@ -4,8 +4,9 @@
 """
 
 import asyncio
-import modal
 import numpy as np
+
+import modal
 
 from .common import app
 from .remote import LensInference

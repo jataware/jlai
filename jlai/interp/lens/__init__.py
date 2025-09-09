@@ -24,8 +24,8 @@ async def main():
         ],        
     ]
     
-    import re
-    def _layer_filter(layer_name):
+    def _names_filter(layer_name):
+        import re
         pattern = re.compile(r'blocks\.(\d+)\.hook_resid_post')
         match   = pattern.match(layer_name)
         if match:
@@ -37,8 +37,7 @@ async def main():
         model_str    = "Qwen/Qwen3-0.6B",
         padding_side = "right",
         devel        = True,
-        layer_filter = _layer_filter,
     )
 
-    async for result in client.abatched_forward(messages, tokens_per_batch=51):
+    async for result in client.abatched_forward(messages, tokens_per_batch=51, names_filter = _names_filter):
         print(result)
