@@ -3,7 +3,6 @@
     jlai.interp.lens.modal.remote
 """
 
-import re
 import os
 import asyncio
 from time import time
@@ -46,7 +45,6 @@ _image = (
 )
 
 with _image.imports():
-    import re
     import torch
     import numpy as np
     import transformer_lens
@@ -83,6 +81,10 @@ class LensInference:
     def messages2tokens(self, messages):
         return [self._n_tokens(self._prep(msg)) for msg in messages]
 
+    @modal.method()
+    def hook_names(self):
+        return list(self.model.hook_dict.keys())
+
     def _n_tokens(self, x):
         if isinstance(x, list):
             return [self._n_tokens(xx) for xx in x]
@@ -93,7 +95,8 @@ class LensInference:
         return self.model.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
 
     @modal.method()
-    async def forward(self, messages: list[list[dict]], return_logits: bool = True, **kwargs) -> list[dict]:
+    async def forward(self, messages, return_logits=True, **kwargs) -> list[dict]:
+        
         t0 = time()
         async with self.semaphore: # force max 1 concurrent forward call, even if more are queued
             t1 = time()
