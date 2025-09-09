@@ -35,18 +35,7 @@ class LensClient:
     async def aforward(self, messages, **kwargs):
         return await self.model.forward.remote.aio(messages=messages, **kwargs)
 
-    async def abatched_forward(self, messages, tokens_per_batch=1024, **kwargs):
-        n_tokens = self.model.messages2tokens.remote(messages)
-        assert max(n_tokens) <= tokens_per_batch, "Max token count per batch is less than the max token count per message"
-        
-        # Sort by token count for efficient batching
-        asort           = np.argsort(n_tokens)
-        sorted_messages = [messages[i] for i in asort]
-        sorted_n_tokens = [n_tokens[i] for i in asort]
-        
-        # --
-        # Create batches
-        
+    def _compute_batches(self, sorted_n_tokens, tokens_per_batch):
         print('batched_forward: creating batches')
         
         all_bidxs   = []
@@ -66,6 +55,18 @@ class LensClient:
             all_bidxs.append(curr_batch)
             print(f' n_tokens={curr_n_toks} | batch={curr_batch}')
         
+        return all_bidxs
+    
+    async def abatched_forward(self, messages, tokens_per_batch=1024, **kwargs):
+        n_tokens = self.model.messages2tokens.remote(messages)
+        assert max(n_tokens) <= tokens_per_batch, "Max token count per batch is less than the max token count per message"
+        
+        # Sort by token count for efficient batching
+        asort           = np.argsort(n_tokens)
+        sorted_messages = [messages[i] for i in asort]
+        sorted_n_tokens = [n_tokens[i] for i in asort]
+        all_bidxs       = self._compute_batches(sorted_n_tokens, tokens_per_batch)
+
         # --
         # Process all all_bidxs in parallel across different machines
         # [TODO] control the number of machines?  With a semaphore here maybe?
