@@ -14,15 +14,14 @@ from .common import app
 from .remote import LensInference
 
 class LensClient:
-    def __init__(self, model_str='Qwen/Qwen3-0.6B', padding_side='right', devel=False):
+    def __init__(self, model_str='Qwen/Qwen3-0.6B', devel=False):
         if devel:
             _model_cls = LensInference
         else:
             _model_cls = modal.Cls.from_name(app.name, 'LensInference')
 
         self.model_str    = model_str
-        self.padding_side = padding_side
-        self.model        = _model_cls(model_str=self.model_str, padding_side=self.padding_side)
+        self.model        = _model_cls(model_str=self.model_str)
 
     def n_tokens(self, messages):
         return self.model.messages2tokens.remote(messages)
