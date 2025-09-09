@@ -33,8 +33,8 @@ class LensClient:
     def forward(self, messages : list):
         return self.model.forward.remote.aio(messages=messages)
 
-    async def aforward(self, messages, **kwargs):
-        return await self.model.forward.remote.aio(messages=messages, **kwargs)
+    async def aforward(self, **kwargs):
+        return await self.model.forward.remote.aio(**kwargs)
 
     def _compute_batches(self, n_tokens, tokens_per_batch, verbose=True):
         bins = binpacking.to_constant_volume(
@@ -60,15 +60,25 @@ class LensClient:
         # Process all batch_idxs in parallel across different machines
         # [TODO] control the number of machines?  With a semaphore here maybe?
         
-        sem = asyncio.Semaphore(max_concurrent)
-        async def _process_batch(idxs):
-            async with sem:
-                batch_res = await self.aforward([messages[i] for i in idxs], **kwargs)
-                return [(idx, res) for idx, res in zip(idxs, batch_res)]
+        # >>
+        # sem = asyncio.Semaphore(max_concurrent)
+        # async def _process_batch(idxs):
+        #     async with sem:
+        #         batch_res = await self.aforward(messages=[messages[i] for i in idxs], **kwargs)
+        #         return [(idx, res) for idx, res in zip(idxs, batch_res)]
 
-        tasks = [_process_batch(idxs) for idxs in batch_idxs]
-        pbar  = tqdm(total=len(messages))
-        for task in asyncio.as_completed(tasks):
-            for idx, res in (await task):
+        # tasks = [_process_batch(idxs) for idxs in batch_idxs]
+        # pbar  = tqdm(total=len(messages))
+        # for task in asyncio.as_completed(tasks):
+        #     for idx, res in (await task):
+        #         yield idx, res
+        #         pbar.update(1)
+        # --
+        for b_idxs, b_res in self.model.forward.map.aio(
+            messages     = [[messages[i] for i in idxs] for idxs in batch_idxs],
+            message_idxs = [idxs for idxs in batch_idxs],
+        ):
+            for idx, res in zip(b_idxs, b_res):
                 yield idx, res
-                pbar.update(1)
+        # <<
+        

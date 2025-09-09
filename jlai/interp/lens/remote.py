@@ -7,7 +7,6 @@ import os
 import asyncio
 from time import time
 from pathlib import Path
-from typing import Optional
 
 import modal
 from .common import app
@@ -35,6 +34,7 @@ _image = (
         "huggingface_hub",
         "hf-transfer",
         "hf-xet",
+        "binpacking",
     )
     .env(
         {
@@ -98,7 +98,9 @@ class LensInference:
         return self.model.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
 
     @modal.method()
-    async def forward(self, messages, return_logits=False, aggregate=None, **kwargs) -> list[dict]:
+    async def forward(self, messages, message_idxs=None, return_logits=False, aggregate=None, **kwargs) -> list[dict]:
+        if message_idxs is not None:
+            assert len(messages) == len(message_idxs), "messages and message_idxs must have the same length"
         
         t0 = time()
         async with self.semaphore: # force max 1 concurrent forward call, even if more are queued
@@ -143,4 +145,8 @@ class LensInference:
                 out.append(tmp)
             
             print(f"LensInference.forward: done (ran for {time() - t1:.4f}s)")
-            return out
+            
+            if message_idxs is None:
+                return out
+            else:
+                return [(message_idxs[i], out[i]) for i in range(n_messages)]
