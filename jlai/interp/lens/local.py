@@ -22,6 +22,9 @@ class LensClient:
         self.padding_side = padding_side
         self.model        = _model_cls(model_str=self.model_str, padding_side=self.padding_side)
 
+    def hook_names(self):
+        return self.model.hook_names.remote()
+
     def forward(self, messages : list):
         return self.model.forward.remote.aio(messages=messages)
 

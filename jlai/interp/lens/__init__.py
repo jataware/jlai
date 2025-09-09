@@ -43,7 +43,7 @@ async def main():
         
         return False
     
-    hook_names = client.model.hook_names.remote()
+    hook_names = client.hook_names()
     hook_names = [name for name in hook_names if names_filter(name)]
     rprint(hook_names)
 
