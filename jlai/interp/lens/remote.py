@@ -56,7 +56,7 @@ with _image.imports():
     image                  = _image,
     gpu                    = gpu_type,
     max_containers         = max_containers,
-    scaledown_window       = 2 * 60,
+    scaledown_window       = 4 * 60,
     retries                = 3,
     secrets                = [modal.Secret.from_name("huggingface-secret")],
     volumes                = VOLUMES,
@@ -98,7 +98,7 @@ class LensInference:
         return self.model.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
 
     @modal.method()
-    async def forward(self, messages, return_logits=False, **kwargs) -> list[dict]:
+    async def forward(self, messages, return_logits=False, aggregate=None, **kwargs) -> list[dict]:
         
         t0 = time()
         async with self.semaphore: # force max 1 concurrent forward call, even if more are queued
@@ -135,6 +135,10 @@ class LensInference:
                 # convert to numpy
                 tmp = {k: v.numpy() for k, v in tmp.items()}
                 # >>
+                
+                if aggregate:
+                    agg_idxs = list(range(aggregate, n_tokens[i] + aggregate, aggregate))
+                    tmp      = {k: np.vstack([v[:idx].mean(axis=0).astype(np.float32) for idx in agg_idxs]) for k, v in tmp.items()}
                 
                 out.append(tmp)
             
