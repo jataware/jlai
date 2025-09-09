@@ -95,7 +95,7 @@ class LensInference:
         return self.model.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
 
     @modal.method()
-    async def forward(self, messages, return_logits=True, **kwargs) -> list[dict]:
+    async def forward(self, messages, return_logits=False, **kwargs) -> list[dict]:
         
         t0 = time()
         async with self.semaphore: # force max 1 concurrent forward call, even if more are queued
