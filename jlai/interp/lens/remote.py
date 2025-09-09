@@ -69,13 +69,12 @@ with _image.imports():
 @modal.concurrent(max_inputs=32)
 class LensInference:
     model_str     : str = modal.parameter(default="Qwen/Qwen3-0.6B")
-    padding_side  : str = modal.parameter(default="right")
 
     @modal.enter()
     def _on_enter(self):
         self.model = transformer_lens.HookedTransformer.from_pretrained(self.model_str)
         self.model.tokenizer.pad_token    = self.model.tokenizer.eos_token
-        self.model.tokenizer.padding_side = self.padding_side
+        self.model.tokenizer.padding_side = "right"
         print(f"Model {self.model_str} loaded successfully")
         
         self.semaphore = asyncio.Semaphore(1)
@@ -113,7 +112,7 @@ class LensInference:
                 self.model.reset_hooks()
                 logits, activations = self.model.run_with_cache(
                     inputs_str, 
-                    padding_side        = self.model.tokenizer.padding_side, 
+                    padding_side        = self.model.tokenizer.padding_side,
                     return_cache_object = False,
                     **kwargs
                 )
@@ -126,20 +125,20 @@ class LensInference:
             
             out = []
             for msg_idx in range(n_messages):
-                if self.model.tokenizer.padding_side == 'right':
-                    tmp = {k: _cache[k][msg_idx,:n_tokens[msg_idx]] for k in _cache.keys()}
-                elif self.model.tokenizer.padding_side == 'left':
-                    tmp = {k: _cache[k][msg_idx,-n_tokens[msg_idx]:] for k in _cache.keys()}
+                # removing RHS padding
+                assert self.model.tokenizer.padding_side == 'right'
+                tmp = {k: _cache[k][msg_idx,:n_tokens[msg_idx]] for k in _cache.keys()}
                 
-                # <<
                 # convert to numpy
                 tmp = {k: v.numpy() for k, v in tmp.items()}
-                # >>
                 
+                # drop tokens for all but the last message
                 if drop_prefix:
                     n_prefix_tokens = self._n_tokens(self._prep(messages[msg_idx][:-1]))
                     tmp             = {k: v[n_prefix_tokens:] for k, v in tmp.items()}
                 
+                # aggregate to average of every n'th token
+                # [TODO] maybe running average is better than cumulative average? whatever ...
                 if aggregate:
                     agg_idxs = list(range(aggregate, n_tokens[msg_idx] + aggregate, aggregate))
                     tmp      = {k: np.vstack([v[:idx].mean(axis=0).astype(np.float32) for idx in agg_idxs]) for k, v in tmp.items()}
