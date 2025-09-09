@@ -125,9 +125,11 @@ class LensInference:
             
             out = []
             for msg_idx in range(n_messages):
+                msg_tokens = n_tokens[msg_idx]
+                
                 # removing RHS padding
                 assert self.model.tokenizer.padding_side == 'right'
-                tmp = {k: _cache[k][msg_idx,:n_tokens[msg_idx]] for k in _cache.keys()}
+                tmp = {k: _cache[k][msg_idx,:msg_tokens] for k in _cache.keys()}
                 
                 # convert to numpy
                 tmp = {k: v.numpy() for k, v in tmp.items()}
@@ -135,12 +137,13 @@ class LensInference:
                 # drop tokens for all but the last message
                 if drop_prefix:
                     n_prefix_tokens = self._n_tokens(self._prep(messages[msg_idx][:-1]))
+                    msg_tokens      = msg_tokens - n_prefix_tokens
                     tmp             = {k: v[n_prefix_tokens:] for k, v in tmp.items()}
                 
                 # aggregate to average of every n'th token
                 # [TODO] maybe running average is better than cumulative average? whatever ...
                 if aggregate:
-                    agg_idxs = list(range(aggregate, n_tokens[msg_idx] + aggregate, aggregate))
+                    agg_idxs = list(range(aggregate, msg_tokens + aggregate, aggregate))
                     tmp      = {k: np.vstack([v[:idx].mean(axis=0).astype(np.float32) for idx in agg_idxs]) for k, v in tmp.items()}
                 
                 out.append(tmp)
