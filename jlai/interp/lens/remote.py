@@ -60,8 +60,11 @@ with _image.imports():
     retries                = 3,
     secrets                = [modal.Secret.from_name("huggingface-secret")],
     volumes                = VOLUMES,
-    # enable_memory_snapshot = True,
-    # experimental_options   = {"enable_gpu_snapshot": True}
+    # <<
+    # Faster cold start?
+    enable_memory_snapshot = True,
+    experimental_options   = {"enable_gpu_snapshot": True}
+    # >>
 )
 @modal.concurrent(max_inputs=32)
 class LensInference:
@@ -100,7 +103,7 @@ class LensInference:
         t0 = time()
         async with self.semaphore: # force max 1 concurrent forward call, even if more are queued
             t1 = time()
-            print(f"LensInference.forward: start (waited {t1 - t0}s)")
+            print(f"LensInference.forward: start (waited {t1 - t0:.4f}s)")
             
             n_messages = len(messages)
             inputs_str = self._prep(messages)
@@ -135,5 +138,5 @@ class LensInference:
                 
                 out.append(tmp)
             
-            print(f"LensInference.forward: done (ran for {time() - t1}s)")
+            print(f"LensInference.forward: done (ran for {time() - t1:.4f}s)")
             return out

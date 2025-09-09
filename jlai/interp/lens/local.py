@@ -5,6 +5,7 @@
 
 import asyncio
 import numpy as np
+from tqdm import tqdm
 
 import modal
 
@@ -51,7 +52,7 @@ class LensClient:
         for i, tokens in enumerate(sorted_n_tokens):
             if curr_n_toks + tokens > tokens_per_batch and curr_batch:
                 all_bidxs.append(curr_batch)
-                print(f'\tbatch={curr_batch} | n_tokens={curr_n_toks}')
+                print(f'\n_tokens={curr_n_toks} | tbatch={curr_batch}')
                 curr_batch  = []
                 curr_n_toks = 0
             
@@ -60,7 +61,7 @@ class LensClient:
         
         if curr_batch:
             all_bidxs.append(curr_batch)
-            print(f'\tbatch={curr_batch} | n_tokens={curr_n_toks}')
+            print(f'\tn_tokens={curr_n_toks} | batch={curr_batch}')
         
         # --
         # Process all all_bidxs in parallel across different machines
@@ -71,6 +72,8 @@ class LensClient:
             return [(asort[idx], res) for idx, res in zip(bidxs, batch_res)]
 
         tasks = [_process_batch(bidxs) for bidxs in all_bidxs]
+        pbar  = tqdm(total=len(messages))
         for task in asyncio.as_completed(tasks):
             for gidx, res in (await task):
+                pbar.update(1)
                 yield gidx, res
