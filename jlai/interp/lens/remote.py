@@ -98,9 +98,7 @@ class LensInference:
         return self.model.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
 
     @modal.method()
-    async def forward(self, messages, message_idxs=None, return_logits=False, aggregate=None, **kwargs) -> list[dict]:
-        if message_idxs is not None:
-            assert len(messages) == len(message_idxs), "messages and message_idxs must have the same length"
+    async def forward(self, messages, return_logits=False, aggregate=None, drop_prefix=False, **kwargs) -> list[dict]:
         
         t0 = time()
         async with self.semaphore: # force max 1 concurrent forward call, even if more are queued
@@ -138,6 +136,10 @@ class LensInference:
                 tmp = {k: v.numpy() for k, v in tmp.items()}
                 # >>
                 
+                if drop_prefix:
+                    n_prefix_tokens = self._n_tokens(self._prep(messages[msg_idx][:-1]))
+                    tmp             = {k: v[n_prefix_tokens:] for k, v in tmp.items()}
+                
                 if aggregate:
                     agg_idxs = list(range(aggregate, n_tokens[msg_idx] + aggregate, aggregate))
                     tmp      = {k: np.vstack([v[:idx].mean(axis=0).astype(np.float32) for idx in agg_idxs]) for k, v in tmp.items()}
@@ -146,7 +148,4 @@ class LensInference:
             
             print(f"LensInference.forward: done (ran for {time() - t1:.4f}s)")
             
-            if message_idxs is None:
-                return out
-            else:
-                return [(message_idxs[i], out[i]) for i in range(n_messages)]
+            return out

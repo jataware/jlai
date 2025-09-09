@@ -58,27 +58,17 @@ class LensClient:
         
         # --
         # Process all batch_idxs in parallel across different machines
-        # [TODO] control the number of machines?  With a semaphore here maybe?
+        # [TODO] use map instead? but it's more annoying to pass args, etc
         
-        # >>
-        # sem = asyncio.Semaphore(max_concurrent)
-        # async def _process_batch(idxs):
-        #     async with sem:
-        #         batch_res = await self.aforward(messages=[messages[i] for i in idxs], **kwargs)
-        #         return [(idx, res) for idx, res in zip(idxs, batch_res)]
+        sem = asyncio.Semaphore(max_concurrent)
+        async def _process_batch(idxs):
+            async with sem:
+                batch_res = await self.aforward(messages=[messages[i] for i in idxs], **kwargs)
+                return [(idx, res) for idx, res in zip(idxs, batch_res)]
 
-        # tasks = [_process_batch(idxs) for idxs in batch_idxs]
-        # pbar  = tqdm(total=len(messages))
-        # for task in asyncio.as_completed(tasks):
-        #     for idx, res in (await task):
-        #         yield idx, res
-        #         pbar.update(1)
-        # --
-        for b_idxs, b_res in self.model.forward.map.aio(
-            messages     = [[messages[i] for i in idxs] for idxs in batch_idxs],
-            message_idxs = [idxs for idxs in batch_idxs],
-        ):
-            for idx, res in zip(b_idxs, b_res):
+        tasks = [_process_batch(idxs) for idxs in batch_idxs]
+        pbar  = tqdm(total=len(messages))
+        for task in asyncio.as_completed(tasks):
+            for idx, res in (await task):
                 yield idx, res
-        # <<
-        
+                pbar.update(1)
