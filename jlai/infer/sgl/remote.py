@@ -63,9 +63,19 @@ class SGLInference:
 
     @modal.enter()
     def _on_enter(self):
-        self.server_process, self.port = launch_server_cmd(
-            f"python3 -m sglang.launch_server --model-path {self.model_str} --host 0.0.0.0"
-        )
+        if 'gpt-oss' in self.model_str:
+            self.server_process, self.port = launch_server_cmd(
+                f"python3 -m sglang.launch_server"
+                f" --model-path {self.model_str}"
+                f" --tool-call-parser gpt-oss"
+                f" --reasoning-parser gpt-oss"
+                f" --host 0.0.0.0"
+            )
+        
+        else:
+            self.server_process, self.port = launch_server_cmd(
+                f"python3 -m sglang.launch_server --model-path {self.model_str} --host 0.0.0.0"
+            )
 
         wait_for_server(f"http://localhost:{self.port}")
         print(f"Server started on http://localhost:{self.port}")
